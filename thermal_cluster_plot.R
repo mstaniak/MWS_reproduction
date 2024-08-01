@@ -38,6 +38,10 @@ cm_onepot = readRDS("input_data/onepot_tpp/contrast_matrix.RDS")
 gc_sh = MSstatsTMT::groupComparisonTMT(makeMSstatsTMTInput(summ_sh), cm_onepot)
 gc_un = MSstatsTMT::groupComparisonTMT(makeMSstatsTMTInput(summ_un), cm_onepot)
 
+dcast(as.data.table(rbind(cbind(gc_sh$ComparisonResult, Method = "shared"),
+                          cbind(gc_un$ComparisonResult, Method = "unique"))), Protein ~ Method, value.var = c("log2FC", "SE", "pvalue"))
+
+
 featureWeights(summ_sh)[, uniqueN(PSM)]
 featureWeights(summ_sh)[ProteinName == "Q7Z5L9-2", uniqueN(PSM)]
 
@@ -124,3 +128,37 @@ ggplot(cl_plot_dt,#[PSM %in% names(sort(mean_cors_1)[1:2])],#[ProteinName == "Q9
         axis.text = element_text(size = 16),
         strip.text = element_text(size = 20), 
         legend.box = "vertical")
+
+
+# Comparison to TPP data (original processing)
+curve_input = fread("input_data/onepot_tpp/XuY_ACSChemBio_2021_FullCurve_PSMs (2).txt")
+curve_annot = readRDS("input_data/onepot_tpp/Annotation_file_thermal.RDS")
+curve_annot$Channel = stringr::str_replace_all(curve_annot$Channel, "Abundance", "Abundance:")
+colnames(curve_input)[grepl("Abundance", colnames(curve_input))]
+colnames(curve_input) = stringr::str_replace_all(colnames(curve_input), "Abundance", "Abundance:")
+colnames(curve_input)[grepl("Abundance", colnames(curve_input))]
+colnames(curve_input) = stringr::str_replace(colnames(curve_input), "131N", "131")
+curve_input[, `Abundance: 131C` := NULL]
+
+curve_data_orig = MSstatsTMT::PDtoMSstatsTMTFormat(curve_input, curve_annot, 
+                                                   which.proteinid = "Master.Protein.Accessions",
+                                                   useNumProteinsColumn = FALSE,
+                                                   useUniquePeptide = TRUE,
+                                                   rmPSM_withfewMea_withinRun = TRUE,
+                                                   rmProtein_with1Feature = TRUE,
+                                                   summaryforMultipleRows = max,
+                                                   use_log_file = FALSE,
+                                                   append=FALSE,
+                                                   verbose=TRUE)
+curve_summ = MSstatsTMT::proteinSummarization(curve_data_orig,
+                                              method = "msstats",
+                                              global_norm = FALSE,
+                                              reference_norm = TRUE,
+                                              MBimpute=TRUE,
+                                              use_log_file=FALSE,
+                                              append=FALSE,
+                                              remove_norm_channel = T,
+                                              remove_empty_channel = T)
+cm_curve = readRDS("input_data/onepot_tpp/Contrast_thermal.RDS")
+gc_curve = MSstatsTMT::groupComparisonTMT(curve_summ, cm_curve)
+gc_curve[grepl("Q7Z5L9", Protein)]

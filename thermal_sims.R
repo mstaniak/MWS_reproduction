@@ -60,6 +60,7 @@ iso_nosub[(UniqueOnly), uniqueN(Cluster)]
 
 iso_nosub[, uniqueN(ProteinName)]
 iso_nosub[, uniqueN(Cluster)]
+# saveRDS(iso_nosub, "processed_data/onepot_tpp/iso_nosub.RDS")
 
 ggplot(iso_nosub, aes(x = Channel, y = log2IntensityNormalized)) +
   geom_boxplot()
