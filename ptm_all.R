@@ -174,8 +174,8 @@ ptm_quants = as.data.table(pyst_sum_input$PTM$ProteinLevelData)
 #                                  contrast.matrix = comparison)
 # 
 # ptm_gc = as.data.table(pSTY_model$ADJUSTED.Model)
-# saveRDS(ptm_gc, "results/ptm/20240701_ptm_gc.RDS")
-ptm_gc = readRDS("results/ptm/20240701_ptm_gc.RDS")
+# saveRDS(ptm_gc, "results/ptm/ptm_gc.RDS")
+ptm_gc = readRDS("results/ptm/ptm_gc.RDS")
 
 input_with_cls[, ProteinName := stringr::str_replace_all(ProteinName, "__", "_")]
 cl = input_with_cls[grepl("9Q6J5", ProteinName)][grepl("S236", ProteinName) | grepl("S240", ProteinName)]
