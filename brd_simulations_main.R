@@ -90,6 +90,10 @@ annot[, Time := stringr::str_replace(Time, "min", "")]
 annot[, Time := as.numeric(Time)]
 annot[, Group := ifelse(grepl("DMSO", Condition), "control", "G0011")]
 
+# saveRDS(brd_cluster, "processed_data/protein_degrader/brd_cluster.RDS")
+# saveRDS(gs, "processed_data/protein_degrader/gold_standard_tbl.RDS")
+# saveRDS(annot, "processed_data/protein_degrader/brd_annot_tbl.RDS")
+
 num_rep = 100
 
 sim_100 = mclapply(
@@ -341,7 +345,6 @@ gcs_comp_dt[, Time := stringr::str_extract(TimeLabel, "[0-9]+min")]
 gcs_comp_dt[, Time := stringr::str_replace(Time, "min", "")]
 gcs_comp_dt[, Time := as.numeric(Time)]
 gcs_comp_dt = merge(gcs_comp_dt, gs, by = c("Protein", "TimeLabel", "Time"))
-
 
 gcs_comp_dt_noise = rbindlist(lapply(seq_along(gc_res_raw_noise), function(i) {
   x = gc_res_raw_noise[[i]]
