@@ -2,9 +2,6 @@ library(MSstatsPTM)
 library(data.table)
 library(tidyverse)
 library(gridExtra)
-library(ggrepel)
-library(VennDiagram)
-library(data.table)
 library(MSstatsWeightedSummary) # GitHub package currently 
 library(MSstatsTMT)
 
