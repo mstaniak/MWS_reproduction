@@ -74,14 +74,14 @@ ch_order = c("126C", "127N", "127C", "128N", "128C",
              "129N", "129C", "130N", "130C", "131N")
 plot_input_brd[, Channel := factor(Channel, levels = ch_order, ordered = TRUE)]
 
-
-ggplot(plot_input_brd,
-       aes(x = Channel, y = logintensity,
-           group = PSM, color = IsUnique)) +
-  geom_line() +
-  facet_grid(~ProteinName) +
-  theme_bw() +
-  theme(legend.position = "bottom")
+# 
+# ggplot(plot_input_brd,
+#        aes(x = Channel, y = logintensity,
+#            group = PSM, color = IsUnique)) +
+#   geom_line() +
+#   facet_grid(~ProteinName) +
+#   theme_bw() +
+#   theme(legend.position = "bottom")
 
 example_input_1 = plot_input_brd[ProteinName != "BRD3"][!(IsUnique) | PSM %in% c("K.AQAEHAEK.E_3",
                                                                                  "K.LNLPDYYK.I_2",
@@ -125,20 +125,20 @@ feature_data[, log2IntensityNormalized := log2IntensityNormalized - mean(log2Int
 feature_data$Channel = factor(feature_data$Channel, levels = ch_order, 
                               ordered = TRUE)
 
-plot = ggplot(summaries_df, aes(x = Channel, y = Abundance, 
-                                group = paste(Method, ProteinName), color = Method))
-plot = plot + geom_line(aes(x = Channel, y = log2IntensityNormalized, 
-                            group = PSM), data = feature_data, 
-                        inherit.aes = FALSE, color = "grey", alpha = 0.5, 
-                        size = 0.8)
-
-plot = plot + geom_point(size = 1.2) + 
-  geom_line(size = 1.2) + 
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 270), 
-        legend.position = "bottom")
-plot
-
+# plot = ggplot(summaries_df, aes(x = Channel, y = Abundance, 
+#                                 group = paste(Method, ProteinName), color = Method))
+# plot = plot + geom_line(aes(x = Channel, y = log2IntensityNormalized, 
+#                             group = PSM), data = feature_data, 
+#                         inherit.aes = FALSE, color = "grey", alpha = 0.5, 
+#                         size = 0.8)
+# 
+# plot = plot + geom_point(size = 1.2) + 
+#   geom_line(size = 1.2) + 
+#   theme_bw() +
+#   theme(axis.text.x = element_text(angle = 270), 
+#         legend.position = "bottom")
+# plot
+# 
 
 
 feature_data2 = copy(summary_input_1)
@@ -212,3 +212,197 @@ ggplot(summaries_df[!grepl("DMSO", Condition)],
         legend.position = "bottom",
         legend.box = "vertical")
 
+### New plot
+
+# plot_input_brd[, Channel := factor(Channel, levels = ch_order, ordered = TRUE)]
+# summary_input_1[, Channel := as.factor(as.character(Channel))]
+
+# 
+# ggplot(plot_input_brd,
+#        aes(x = Channel, y = logintensity,
+#            group = PSM, color = IsUnique)) +
+#   geom_line() +
+#   facet_grid(~ProteinName) +
+#   theme_bw() +
+#   theme(legend.position = "bottom")
+
+ggplot(plot_input_brd[ProteinName != "BRD3"][(IsUnique)],
+       aes(x = Channel, y = log2IntensityNormalized, group = PSM, color = IsUnique)) +
+  geom_line() +
+  geom_text(aes(x = Channel, y = log2IntensityNormalized, label = PSM),
+            data = unique(plot_input_brd[ProteinName != "BRD3"][(IsUnique) & Channel == "126C", .(IsUnique, PSM, ProteinName, Channel, log2IntensityNormalized)])) +
+  facet_wrap(~ProteinName) +
+  theme_bw() +
+  theme(legend.position = "bottom")
+
+unique(plot_input_brd[ProteinName != "BRD3"][(IsUnique), unique(PSM)])
+example_input_1 = plot_input_brd[ProteinName != "BRD3"][!(IsUnique) | PSM %in% c("K.TKEELALEK.K_3",
+                                                                                 "K.LNLPDYYK.I_2")]
+summary_input_1 = copy(example_input_1)
+summary_input_1[!(IsUnique), unique(PSM)]
+
+ggplot(summary_input_1,
+       aes(x = Channel, y = log2IntensityNormalized, group = PSM, color = IsUnique)) +
+  geom_line() +
+  facet_wrap(~ProteinName) +
+  theme_bw() +
+  theme(legend.position = "bottom")
+
+
+# # [1] "R.LM*FSNCYK.Y_2"      "R.LMFSNCYK.Y_2"       "K.RQLSLDINKLPGEK.L_3" "R.LAELQEQLK.A_3"      "R.VVHIIQSR.E_3"      
+# summary
+
+shared_ids = summary_input_1[!(IsUnique), unique(PSM)]
+prots = unique(summary_input_1$ProteinName)
+run = unique(summary_input_1$Run)
+summary_input_1[, Channel := factor(as.character(Channel))]
+
+unique_ids = unique(summary_input_1[(IsUnique), PSM])
+summs_by_weights = lapply(seq(0.1, 0.9, by = 0.1), function(weight_brd2) {
+  summ = summarizeProteinsClusterSingleRun(summary_input_1, 
+                                    weights = rbind(data.table(PSM = rep(shared_ids, each = 2),
+                                                         ProteinName = rep(prots, times = 5),
+                                                         Weight = rep(c(weight_brd2, 1 - weight_brd2), 
+                                                                      times = 5),
+                                                         Run = run,
+                                                         IsUnique = FALSE),
+                                                    unique(summary_input_1[(IsUnique), .(PSM, ProteinName, Weight = 1, Run, IsUnique)])),
+                                    norm = "Huber",
+                                    norm_parameter = 1e-1,
+                                    use_shared = TRUE)  
+  summ$Weight = weight_brd2
+  summ
+})
+
+comp = rbindlist(summs_by_weights)
+comp[, AbundanceStandard := Abundance - mean(Abundance), by = c("ProteinName", "Weight")]
+summary_input_1[, AbundanceStandard := log2IntensityNormalized - mean(log2IntensityNormalized, na.rm = T),
+                by = c("ProteinName", "PSM", "Run")]
+ggplot(comp,
+       aes(x = Channel, y = Abundance, group = Weight, color = reorder(as.character(Weight), Weight))) +
+  geom_line(aes(x =  Channel, y = log2IntensityNormalized, 
+                group = PSM),
+            data = summary_input_1[(IsUnique)],
+            inherit.aes = FALSE, size = 2, color = "black") + 
+  geom_line(size = 1.2) +
+  facet_grid(~ProteinName) +
+  theme_bw() +
+  theme(legend.position = "bottom")
+
+ggplot(comp,
+       aes(x = Channel, y = AbundanceStandard, group = Weight, color = Weight)) +
+  geom_line(aes(x =  Channel, y = AbundanceStandard, 
+                group = PSM),
+            data = summary_input_1[(IsUnique)],
+            inherit.aes = FALSE, size = 2, color = "black") + 
+  geom_line(size = 1.2) +
+  facet_grid(~ProteinName) +
+  theme_bw() +
+  theme(legend.position = "bottom")
+
+comp[, Channel := factor(as.character(Channel), levels = ch_order, ordered = TRUE)]
+summary_input_1[, Channel := factor(as.character(Channel), levels = ch_order, ordered = TRUE)]
+ggplot(comp[ProteinName == "BRD2"],
+       aes(x = Channel, y = AbundanceStandard, group = Weight, color = Weight)) +
+  geom_line(aes(x =  Channel, y = AbundanceStandard,
+                group = PSM),
+            data = summary_input_1[(IsUnique)],
+            inherit.aes = FALSE, size = 2, color = "black") +
+  geom_line(size = 1.2) +
+  # facet_grid(~ProteinName) +
+  theme_bw() +
+  theme(legend.position = "bottom")
+
+
+ggplot(comp[ProteinName == "BRD2"],
+       aes(x = Channel, y = AbundanceStandard, group = Weight, color = Weight)) +
+  geom_line(aes(x =  Channel, y = AbundanceStandard,
+                group = PSM),
+            data = summary_input_1[(IsUnique)],
+            inherit.aes = FALSE, size = 2, color = "black") +
+  geom_line(size = 1.2) +
+  # facet_grid(~ProteinName) +
+  theme_bw() +
+  theme(legend.position = "bottom")
+
+comp[, Channel := factor(as.character(Channel), levels = ch_order, ordered = TRUE)]
+summary_input_1[, Channel := factor(as.character(Channel), levels = ch_order, ordered = TRUE)]
+ggplot(comp,
+       aes(x = Channel, y = Abundance, group = Weight, color = Weight)) +
+  geom_line(aes(x =  Channel, y = log2IntensityNormalized,
+                group = PSM),
+            data = summary_input_1[(IsUnique)],
+            inherit.aes = FALSE, size = 2, color = "black") +
+  geom_line(size = 1.2) +
+  facet_grid(Weight~ProteinName) +
+  theme_bw() +
+  theme(legend.position = "bottom")
+
+comp[, StandardAbundance := Abundance - mean(Abundance), by = c("ProteinName", "Weight")]
+ggplot(comp,
+       aes(x = Channel, y = Abundance, group = ProteinName, color = ProteinName)) +
+  geom_line(aes(x =  Channel, y = log2IntensityNormalized,
+                group = PSM, color = ProteinName),
+            data = summary_input_1[(IsUnique)],
+            inherit.aes = FALSE, size = 2, color = "black") +
+  geom_line(size = 1.2) +
+  facet_grid(~Weight) +
+  theme_bw() +
+  theme(legend.position = "bottom")
+ggplot(comp,
+       aes(x = Channel, y = StandardAbundance, group = ProteinName, color = ProteinName)) +
+  # geom_line(aes(x =  Channel, y = log2IntensityNormalized,
+  #               group = PSM, color = ProteinName),
+  #           data = summary_input_1[(IsUnique)],
+  #           inherit.aes = FALSE, size = 2, color = "black") +
+  geom_line(size = 1.2) +
+  facet_grid(~Weight) +
+  theme_bw() +
+  theme(legend.position = "bottom")
+
+ggplot(comp,
+       aes(x = Channel, y = StandardAbundance, group = paste(ProteinName, Weight), color = Weight)) +
+  # geom_line(aes(x =  Channel, y = log2IntensityNormalized,
+  #               group = PSM, color = ProteinName),
+  #           data = summary_input_1[(IsUnique)],
+  #           inherit.aes = FALSE, size = 2, color = "black") +
+  geom_line(size = 1.2) +
+  facet_grid(~ProteinName) +
+  theme_bw() +
+  theme(legend.position = "bottom")
+
+
+
+# Próba: 0 i 0.1 dla BRD2
+
+summary_input_1[, Channel := factor(as.character(Channel))]
+summ_0 = summarizeProteinsClusterSingleRun(summary_input_1, 
+                                         weights = rbind(data.table(PSM = rep(shared_ids, each = 2),
+                                                                    ProteinName = rep(prots, times = 5),
+                                                                    Weight = rep(c(0, 1), 
+                                                                                 times = 5),
+                                                                    Run = run,
+                                                                    IsUnique = FALSE),
+                                                         unique(summary_input_1[(IsUnique), .(PSM, ProteinName, Weight = 1, Run, IsUnique)])),
+                                         norm = "Huber",
+                                         norm_parameter = 1e-1,
+                                         use_shared = TRUE)  
+summ_01 = summarizeProteinsClusterSingleRun(summary_input_1, 
+                                           weights = rbind(data.table(PSM = rep(shared_ids, each = 2),
+                                                                      ProteinName = rep(prots, times = 5),
+                                                                      Weight = rep(c(0.1, 0.9), 
+                                                                                   times = 5),
+                                                                      Run = run,
+                                                                      IsUnique = FALSE),
+                                                           unique(summary_input_1[(IsUnique), .(PSM, ProteinName, Weight = 1, Run, IsUnique)])),
+                                           norm = "Huber",
+                                           norm_parameter = 1e-1,
+                                           use_shared = TRUE)  
+
+summ_0[, Channel := factor(as.character(Channel), levels = ch_order, ordered = TRUE)]
+ggplot(summ_0,
+       aes(x = Channel, y = Abundance,
+           group = ProteinName, color = ProteinName)) +
+  geom_line() +
+  theme_bw() +
+  theme(legend.position = "bottom")

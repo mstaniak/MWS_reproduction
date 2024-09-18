@@ -96,51 +96,52 @@ annot[, Group := ifelse(grepl("DMSO", Condition), "control", "G0011")]
 
 num_rep = 100
 
-sim_100 = mclapply(
-  c(1:5, 10), 
-  function(num_unique) {
-    lapply(seq_len(num_rep), function(i) {
-      print(i)
-      tryCatch({
-        set.seed(i)
-        unique_peptides = unlist(lapply(unique(brd_cluster$ProteinName),
-                                        function(x) {
-                                          sample(brd_cluster[(IsUnique)][ProteinName == x, unique(PSM)], num_unique)
-                                        }), F, F)
-        summary_input_1_triple = brd_cluster[!(IsUnique) | PSM %in% unique_peptides]
-        summary_input_1_triple[, Channel := as.factor(as.character(Channel))]
-        
-        summary_1_triple_unique = getWeightedProteinSummary(summary_input_1_triple[(IsUnique)],
-                                                            norm = "Huber",
-                                                            norm_parameter = 1e-3,
-                                                            initial_summary = "unique",
-                                                            tolerance = 1e-2, max_iter = 100)
-        
-        summary_1_all_triple = lapply(split(summary_input_1_triple, summary_input_1_triple[, ProteinName]),
-                                      function(x) {
-                                        x$IsUnique = TRUE
-                                        output = getWeightedProteinSummary(x,
-                                                                           norm = "Huber",
-                                                                           norm_parameter = 1e-3,
-                                                                           initial_summary = "unique",
-                                                                           tolerance = 1e-2, max_iter = 100)
-                                        output
-                                      })
-        
-        summary_1_triple_shared = getWeightedProteinSummary(summary_input_1_triple,
-                                                            norm = "Huber",
-                                                            norm_parameter = 1e-3,
-                                                            initial_summary = "unique",
-                                                            tolerance = 1e-2, max_iter = 100)
-        
-        list(summary_1_triple_unique,
-             summary_1_all_triple,
-             summary_1_triple_shared)
-      }, error = function(e) NULL)
-    })
-  }, 
-  mc.cores = 6)
-
+# sim_100 = mclapply(
+#   c(1:5, 10), 
+#   function(num_unique) {
+#     lapply(seq_len(num_rep), function(i) {
+#       print(i)
+#       tryCatch({
+#         set.seed(i)
+#         unique_peptides = unlist(lapply(unique(brd_cluster$ProteinName),
+#                                         function(x) {
+#                                           sample(brd_cluster[(IsUnique)][ProteinName == x, unique(PSM)], num_unique)
+#                                         }), F, F)
+#         summary_input_1_triple = brd_cluster[!(IsUnique) | PSM %in% unique_peptides]
+#         summary_input_1_triple[, Channel := as.factor(as.character(Channel))]
+#         
+#         summary_1_triple_unique = getWeightedProteinSummary(summary_input_1_triple[(IsUnique)],
+#                                                             norm = "Huber",
+#                                                             norm_parameter = 1e-3,
+#                                                             initial_summary = "unique",
+#                                                             tolerance = 1e-2, max_iter = 100)
+#         
+#         summary_1_all_triple = lapply(split(summary_input_1_triple, summary_input_1_triple[, ProteinName]),
+#                                       function(x) {
+#                                         x$IsUnique = TRUE
+#                                         output = getWeightedProteinSummary(x,
+#                                                                            norm = "Huber",
+#                                                                            norm_parameter = 1e-3,
+#                                                                            initial_summary = "unique",
+#                                                                            tolerance = 1e-2, max_iter = 100)
+#                                         output
+#                                       })
+#         
+#         summary_1_triple_shared = getWeightedProteinSummary(summary_input_1_triple,
+#                                                             norm = "Huber",
+#                                                             norm_parameter = 1e-3,
+#                                                             initial_summary = "unique",
+#                                                             tolerance = 1e-2, max_iter = 100)
+#         
+#         list(summary_1_triple_unique,
+#              summary_1_all_triple,
+#              summary_1_triple_shared)
+#       }, error = function(e) NULL)
+#     })
+#   }, 
+#   mc.cores = 6)
+# saveRDS(sim_100, "results/protein_degrader/sim_100_few.RDS")
+sim_100 = readRDS("results/protein_degrader/sim_100_few.RDS")
 
 psms_ints = brd_cluster[(IsUnique), .(ProteinName, PSM, Channel, log2IntensityNormalized)]
 psms_ints_l = split(psms_ints, psms_ints$ProteinName)
@@ -211,57 +212,59 @@ ggplot(summary_input_1_triple_2,
         legend.box = "vertical")
 # ggsave("brd_noise_example.pdf", device = "pdf", width = 10, height = 5, scale = 1)  
 
-sim_100_noise = mclapply(
-  c(1:5, 10), 
-  function(num_unique) {
-    lapply(seq_len(num_rep), function(i) {
-      tryCatch({
-        set.seed(i)
-        ok_peptides = unlist(lapply(unique(cors_dt$ProteinName),
-                                    function(x) {
-                                      sample(cors_dt[(IsUnique) & Rank >= 4 & ProteinName == x, unique(PSM)], num_unique - 1)
-                                    }), F, F)
-        set.seed(i)
-        noise_peptides = unlist(lapply(unique(cors_dt$ProteinName),
-                                       function(x) {
-                                         sample(cors_dt[(IsUnique) & Rank < 4 & ProteinName == x, unique(PSM)], 1)
-                                       }), F, F)
-        unique_peptides = c(ok_peptides, noise_peptides)
-        example_input_1_triple = brd_cluster[!(IsUnique) | PSM %in% unique_peptides]
-        
-        summary_input_1_triple = copy(example_input_1_triple)
-        summary_input_1_triple[, Channel := as.factor(as.character(Channel))]
-        
-        summary_1_triple_unique = getWeightedProteinSummary(summary_input_1_triple[(IsUnique)],
-                                                            norm = "Huber",
-                                                            norm_parameter = 1e-3,
-                                                            initial_summary = "unique",
-                                                            tolerance = 1e-2, max_iter = 100)
-        
-        summary_1_all_triple = lapply(split(summary_input_1_triple, summary_input_1_triple[, ProteinName]),
-                                      function(x) {
-                                        x$IsUnique = TRUE
-                                        output = getWeightedProteinSummary(x,
-                                                                           norm = "Huber",
-                                                                           norm_parameter = 1e-3,
-                                                                           initial_summary = "unique",
-                                                                           tolerance = 1e-2, max_iter = 100)
-                                        output
-                                      })
-        
-        summary_1_triple_shared = getWeightedProteinSummary(summary_input_1_triple,
-                                                            norm = "Huber",
-                                                            norm_parameter = 1e-3,
-                                                            initial_summary = "unique",
-                                                            tolerance = 1e-2, max_iter = 100)
-        
-        list(summary_1_triple_unique,
-             summary_1_all_triple,
-             summary_1_triple_shared)
-      }, error = function(e) NULL)
-    })
-  }, 
-  mc.cores = 6)
+# sim_100_noise = mclapply(
+#   c(1:5, 10), 
+#   function(num_unique) {
+#     lapply(seq_len(num_rep), function(i) {
+#       tryCatch({
+#         set.seed(i)
+#         ok_peptides = unlist(lapply(unique(cors_dt$ProteinName),
+#                                     function(x) {
+#                                       sample(cors_dt[(IsUnique) & Rank >= 4 & ProteinName == x, unique(PSM)], num_unique - 1)
+#                                     }), F, F)
+#         set.seed(i)
+#         noise_peptides = unlist(lapply(unique(cors_dt$ProteinName),
+#                                        function(x) {
+#                                          sample(cors_dt[(IsUnique) & Rank < 4 & ProteinName == x, unique(PSM)], 1)
+#                                        }), F, F)
+#         unique_peptides = c(ok_peptides, noise_peptides)
+#         example_input_1_triple = brd_cluster[!(IsUnique) | PSM %in% unique_peptides]
+#         
+#         summary_input_1_triple = copy(example_input_1_triple)
+#         summary_input_1_triple[, Channel := as.factor(as.character(Channel))]
+#         
+#         summary_1_triple_unique = getWeightedProteinSummary(summary_input_1_triple[(IsUnique)],
+#                                                             norm = "Huber",
+#                                                             norm_parameter = 1e-3,
+#                                                             initial_summary = "unique",
+#                                                             tolerance = 1e-2, max_iter = 100)
+#         
+#         summary_1_all_triple = lapply(split(summary_input_1_triple, summary_input_1_triple[, ProteinName]),
+#                                       function(x) {
+#                                         x$IsUnique = TRUE
+#                                         output = getWeightedProteinSummary(x,
+#                                                                            norm = "Huber",
+#                                                                            norm_parameter = 1e-3,
+#                                                                            initial_summary = "unique",
+#                                                                            tolerance = 1e-2, max_iter = 100)
+#                                         output
+#                                       })
+#         
+#         summary_1_triple_shared = getWeightedProteinSummary(summary_input_1_triple,
+#                                                             norm = "Huber",
+#                                                             norm_parameter = 1e-3,
+#                                                             initial_summary = "unique",
+#                                                             tolerance = 1e-2, max_iter = 100)
+#         
+#         list(summary_1_triple_unique,
+#              summary_1_all_triple,
+#              summary_1_triple_shared)
+#       }, error = function(e) NULL)
+#     })
+#   }, 
+#   mc.cores = 6)
+# saveRDS(sim_100_noise, "results/protein_degrader/sim_100_noise.RDS")
+sim_100_noise = readRDS("results/protein_degrader/sim_100_noise.RDS")
 
 gc_res_raw = lapply(sim_100, function(y) {
   lapply(y, function(x) {
@@ -398,23 +401,25 @@ ggplot(gcs_comp_dt[, .(SE = mean((log2FC - GoldStandard)^2)),
   ylab("MSE of log-fold change estimation") +
   ylim(c(0, 0.12))
 # ggsave("sim_brd_mse_few.pdf", device = "pdf", width = 10, height = 5, scale = 1)
+colors = c(colors, "darkblue")
+
+gt_data = unique(gcs_comp_dt[num_unique == 2, .(Time, Protein, GoldStandard, Method = "gold standard (all unique peptides)")])
+
 ggplot(gcs_comp_dt[num_unique == 2],
        aes(x = reorder(as.character(Time), Time),
            y = log2FC, fill = Method)) + # , fill = Method
   geom_boxplot(linewidth = 1.2) + #, outlier.shape = NA
   geom_line(aes(x = reorder(as.character(Time), Time),
-                y = GoldStandard, group = "1"),
-            inherit.aes = FALSE, color = "darkblue", size = 1.5) +
+                y = GoldStandard, group = "1", color = Method),
+            data = gt_data,
+            inherit.aes = FALSE, size = 1.5) + # , color = "darkblue"
   facet_grid( ~ Protein) +
   scale_fill_manual(name = "method",
                     values = colors,
                     labels = c(unique = "unique",
                                shared = "proposed",
                                all = "all")) +
-  scale_color_manual(values = colors,
-                     labels = c(unique = "unique",
-                                shared = "proposed",
-                                all = "all")) +
+  scale_color_manual(values = colors[4], name = "") +
   geom_point(aes(x = reorder(as.character(Time), Time),
                  y = GoldStandard),
              inherit.aes = FALSE, color = "darkblue", size = 1.5) +
@@ -430,7 +435,7 @@ ggplot(gcs_comp_dt[num_unique == 2],
         legend.spacing = unit(5, "pt"),
         legend.text.position = "right") +
   xlab("time") +
-  ylab("log-fold change") +
+  ylab("log-fold change with respect to control") +
   ylim(c(-1.5, 1))
 # ggsave("sims_brd_few.pdf", device = "pdf", width = 10, height = 5, units = "in", scale = 1)
 
@@ -465,18 +470,16 @@ ggplot(gcs_comp_dt_noise[num_unique == 2],
            y = log2FC, fill = Method)) + # , fill = Method
   geom_boxplot(linewidth = 1.2) + #, outlier.shape = NA
   geom_line(aes(x = reorder(as.character(Time), Time),
-                y = GoldStandard, group = "1"),
-            inherit.aes = FALSE, color = "darkblue", size = 1.5) +
+                y = GoldStandard, group = "1", color = Method),
+            data = gt_data,
+            inherit.aes = FALSE, size = 1.5) + # , color = "darkblue"
   facet_grid( ~ Protein) +
   scale_fill_manual(name = "method",
                     values = colors,
                     labels = c(unique = "unique",
                                shared = "proposed",
                                all = "all")) +
-  scale_color_manual(values = colors,
-                     labels = c(unique = "unique",
-                                shared = "proposed",
-                                all = "all")) +
+  scale_color_manual(values = colors[4], name = "") +
   geom_point(aes(x = reorder(as.character(Time), Time),
                  y = GoldStandard),
              inherit.aes = FALSE, color = "darkblue", size = 1.5) +
@@ -492,6 +495,6 @@ ggplot(gcs_comp_dt_noise[num_unique == 2],
         legend.spacing = unit(5, "pt"),
         legend.text.position = "right") +
   xlab("time") +
-  ylab("log-fold change") +
+  ylab("log-fold change with respect to control") +
   ylim(c(-1.5, 1))
 # ggsave("sims_brd_noise.pdf", device = "pdf", width = 10, height = 5, units = "in", scale = 1)
