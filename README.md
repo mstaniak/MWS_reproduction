@@ -3,6 +3,10 @@
 This repository contains code required to reproduce the evaluation of weighted protein summarization method described in an article "Relative quantification of proteins and post-translational modifications in proteomic experiments with shared peptides: a weight-based approach".
 Due to GitHub's file size limits and data privacy, input data necessary for running the code are only available on request from the owner of the repository.
 
+Thermal proteome profiling data and onePot data can be found on Dropbox:
+- [TPP files](https://www.dropbox.com/scl/fo/0jok89t6zb3m5jb2p5tqm/h?rlkey=i1yycwgo2791v6rf4uy20mrv3&dl=0),
+- [onePot files](https://www.dropbox.com/scl/fo/catycmzvdcrr12i5d268b/h?rlkey=6doahhseiksejw5bf2r5q3tov&dl=0).
+
 After obtaining the folder with all input files, it is possible to reproduce the analyses presented in the paper by running the following scripts:
 
 - 00_setup.R to install necessary packages, including two GitHub-based libraries: MSstatsWeightedSummary (which implements the weighted summarization method) and SimulateTMT (which implements model-based protein- and peptide-level data simulation),
