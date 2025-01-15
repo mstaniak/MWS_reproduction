@@ -293,3 +293,24 @@ ggplot(power_data_per_iter[num_biorep > 1],
         legend.box = "vertical")
 ggsave("plots/pdf/plot_sim_power_iter.pdf", device = "pdf", width = 10, height = 5, units = "in", scale = 1, dpi = 300)
 ggsave("plots/png/plot_sim_power_iter.png", device = "png", width = 10, height = 5, units = "in", scale = 1, dpi = 300)
+
+ggplot(iter_mse[error_sd < 0.5],
+       aes(x = PropCatCl, y = IterMSE, fill = ifelse(Method == "shared", "proposed", Method))) +
+  geom_boxplot() +
+  facet_grid(paste("SD:", error_sd)~paste("no. biorep:", num_biorep)) +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  ylim(c(0, 0.12)) +
+  xlab("proportion of unique peptides in a cluster (%)") +
+  ylab("MSE of log-fold change estimation") +
+  scale_fill_manual(name = "method", values = c("purple", "red", "lightblue")) +
+  theme(legend.title = element_text(size = 18),
+        axis.title = element_text(size = 18),
+        legend.text = element_text(size = 18),
+        axis.text = element_text(size = 14),
+        axis.text.x = element_text(angle = 270),
+        strip.text = element_text(size = 18),
+        legend.position = "bottom",
+        legend.box = "vertical")
+ggsave("plots/pdf/plot_sim_mse.pdf", device = "pdf", width = 10, height = 5, units = "in", scale = 1, dpi = 300)
+ggsave("plots/png/plot_sim_mse.png", device = "png", width = 10, height = 5, units = "in", scale = 1, dpi = 300)
