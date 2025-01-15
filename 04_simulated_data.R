@@ -207,7 +207,7 @@ log2fc_groups = get_log2fc_groups(gc_base, log2_fcs, cm, num_proteins = 5)
 # saveRDS(res_meta_dt, "./results/simulated_data/res_meta_dt.RDS")
 res_meta_dt = readRDS("./results/simulated_data/res_meta_dt.RDS")
 
-# Visualization of the results
+# Visualization of the results ----
 iter_mse = res_meta_dt[, .(IterMSE = mean((log2FC - log2Group) ^ 2)),
                        by = c("Method", "iter", "num_unique", "num_biorep", "num_shared", "error_sd", "PropCatCl")]
 res_meta_dt2 = copy(res_meta_dt)

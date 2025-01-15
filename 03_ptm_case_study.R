@@ -35,7 +35,7 @@ processSites = function(combined) {
   combined[, log2IntensityNormalized := log(Intensity, 2)]
   combined
 }
-# Pre-processing and feature / site counts
+# Pre-processing and feature / site counts ----
 shigella_global = as.data.table(shigella_global)
 shigella_global = shigella_global[, .(Intensity = max(Intensity)),
                                   by = .(ProteinName, PeptideSequence, 
@@ -174,6 +174,7 @@ ptm_quants = as.data.table(pyst_sum_input$PTM$ProteinLevelData)
 # saveRDS(ptm_gc, "results/ptm/ptm_gc.RDS")
 ptm_gc = readRDS("results/ptm/ptm_gc.RDS")
 
+# Comparison of the summaries ----
 input_with_cls[, ProteinName := stringr::str_replace_all(ProteinName, "__", "_")]
 cl = input_with_cls[grepl("9Q6J5", ProteinName)][grepl("S236", ProteinName) | grepl("S240", ProteinName)]
 cl[, Run := as.character(Run)]

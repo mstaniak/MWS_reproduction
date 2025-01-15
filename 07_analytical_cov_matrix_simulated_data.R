@@ -331,6 +331,7 @@ weights = rbindlist(lapply(1:5, function(i) {
   data
 }))
 
+# Visualization of the results (variance of weights estimation) -----
 ggplot(weights[, .(weight_var = var(Weight)),
                by = c("min_effect")], aes(x = min_effect, y = weight_var, group = 1)) +
   geom_point() +

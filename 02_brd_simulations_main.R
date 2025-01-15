@@ -72,11 +72,13 @@ row.names(cm_g00) = group_labels
 
 quant_all_procd[grepl("BRD4", ProteinName), unique(Cluster)]
 
+## Single cluster selection ----
 brd_cluster = quant_all_procd[Cluster == 529]
 brd_cluster[, log2IntensityNormalized := log(Intensity, 2)]
 brd_cluster[, ProteinName := stringr::str_extract(ProteinName, "BRD[2-4]")]
 setnames(brd_cluster, "PrecursorCharge", "Charge")
 
+# Gold standard summary based on all available unique peptides ---- 
 full_summary = getWeightedProteinSummary(brd_cluster[(IsUnique)], "Huber", 1e-3)
 gc_full = MSstatsTMT::groupComparisonTMT(makeMSstatsTMTInput(full_summary), cm_g00,
                                          use_log_file = FALSE)
@@ -103,8 +105,8 @@ annot[, Group := ifelse(grepl("DMSO", Condition), "control", "G0011")]
 # saveRDS(gs, "processed_data/protein_degrader/gold_standard_tbl.RDS")
 # saveRDS(annot, "processed_data/protein_degrader/brd_annot_tbl.RDS")
 
+# Simulation study ---- 
 num_rep = 100
-
 # sim_100 = mclapply(
 #   c(1:5, 10),
 #   function(num_unique) {
@@ -155,6 +157,7 @@ num_rep = 100
 # saveRDS(sim_100, "results/protein_degrader/sim_100_few.RDS")
 sim_100 = readRDS("results/protein_degrader/sim_100_few.RDS")
 
+# Evaluation of similarity of peptide-level profiles ----
 psms_ints = brd_cluster[(IsUnique), .(ProteinName, PSM, Channel, log2IntensityNormalized)]
 psms_ints_l = split(psms_ints, psms_ints$ProteinName)
 psms_ints_l = lapply(psms_ints_l, function(x) {
@@ -181,7 +184,7 @@ cors_dt[, Rank := order(Corr), by = "ProteinName"]
 cors_dt[, IsUnique := uniqueN(ProteinName) == 1, by = "PSM"]
 cors_dt[(IsUnique)][Rank < 4]
 
-# Example selection of features with outliers
+# Example selection of features with outliers ----
 ok_peptides = unlist(lapply(unique(cors_dt$ProteinName),
                             function(x) {
                               sample(cors_dt[(IsUnique) & Rank >= 4 & ProteinName == x, unique(PSM)], 2 - 1)
@@ -225,7 +228,7 @@ ggplot(summary_input_1_triple_2,
 ggsave("plots/pdf/brd_noise_example.pdf", width = 10, height = 5, scale = 1, dpi = 300)
 ggsave("plots/png/brd_noise_example.png", width = 10, height = 5, scale = 1, dpi = 300)
 
-
+# Simulation study with outliers ----
 # sim_100_noise = mclapply(
 #   c(1:5, 10),
 #   function(num_unique) {
@@ -281,6 +284,7 @@ ggsave("plots/png/brd_noise_example.png", width = 10, height = 5, scale = 1, dpi
 # saveRDS(sim_100_noise, "results/protein_degrader/sim_100_noise.RDS")
 sim_100_noise = readRDS("results/protein_degrader/sim_100_noise.RDS")
 
+# Protein-level model fitting ----
 gc_res_raw = lapply(sim_100, function(y) {
   lapply(y, function(x) {
     if (!is.null(x)) {
@@ -385,7 +389,7 @@ gcs_comp_dt_noise = merge(gcs_comp_dt_noise, gs,
                           by = c("Protein", "TimeLabel", "Time"))
 
 
-### ----
+### Visualization of the results ----
 colors = c("lightblue", "red", "purple")
 colors = rev(colors)
 

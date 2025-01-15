@@ -196,6 +196,7 @@ gcs_comp_dt_starts[, Time := stringr::str_replace(Time, "min", "")]
 gcs_comp_dt_starts[, Time := as.numeric(Time)]
 gcs_comp_dt_starts = merge(gcs_comp_dt_starts, gs, by = c("Protein", "TimeLabel", "Time"))
 
+# Visualization of the results ----
 ggplot(gcs_comp_dt_starts_sub[, .(MSE = mean((log2FC - GoldStandard)^2),
                               Var = var(log2FC)),
                           by = c("Method", "iter", "TimeLabel", "Time", "num_unique")][Method %in% c("shared", "mixed")],
@@ -429,7 +430,7 @@ gcs_comp_dt_noise_loss_l2_h[, Time := as.numeric(Time)]
 gcs_comp_dt_noise_loss_l2_h = merge(gcs_comp_dt_noise_loss_l2_h, gs, 
                                     by = c("Protein", "TimeLabel", "Time"))
 
-### ----
+### Visualization of loss function-related results ----
 colors = c("#E69F00", "#56B4E9")
 # colors = rev(colors)
 

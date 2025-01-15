@@ -241,6 +241,7 @@ num_size = 9
 lab_size = 9
 tit_size = 20
 
+# Graphical comparison of identified diferentially abundant proteins ----
 ggvenn::ggvenn(list(TPP = setdiff(sig_prots_sh_tpp, grouped_with_interact_sh_tpp),
                     onePot = setdiff(sig_prots_sh_onepot, grouped_with_interact_sh_onepot),
                     known = interactors_fixed),
@@ -275,6 +276,7 @@ ggvenn::ggvenn(list(TPP = setdiff(sig_prots_sh_tpp, grouped_with_interact_sh_tpp
 ggsave("plots/pdf/comp3_all_rev.pdf", device = "pdf", scale = 1, width = 10, height = 5, dpi = 300)
 ggsave("plots/png/comp3_all_rev.png", device = "png", scale = 1, width = 10, height = 5, dpi = 300)
 
+# Descriptive statistics ----
 tpp_int_cls_each_uni[NumProteins > 1, uniqueN(Cluster)]
 tpp_int_cls_each_uni[NumProteins > 1, uniqueN(ProteinName)]
 
@@ -296,6 +298,7 @@ feat_plot_1_cl = merge(feat_plot_1_cl, unique(as.data.table(curve_annot)[, .(Cha
 tpp_plot_comp_1_cl = merge(tpp_plot_comp_1_cl, unique(as.data.table(curve_annot)[, .(Channel, temperature)]),
                        by = "Channel")
 
+# Visualization of summaries and profiles for a single cluster ----
 ggplot(feat_plot_1_cl[Condition != "Norm"], 
        aes(x = temperature, y = log2IntensityNormalized,
            group = paste(PSM, Run), 

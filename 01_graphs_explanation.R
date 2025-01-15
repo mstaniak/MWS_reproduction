@@ -11,10 +11,9 @@ library(MSstatsConvert)
 
 # Data import and basic cleaning ----
 g00_orig = fread("./input_data/protein_degrader/G0011_OBJ0037605_msstats_input_with_protein_map.txt")
-# Remove decoys
+## Remove decoys
 g00_orig = g00_orig[!grepl("##", ProteinName, fixed = T)]
-
-# Extract all matching proteins for each peptide
+## Extract all matching proteins for each peptide
 orig_long_by_prot = cSplit(g00_orig, splitCols = "Protein", sep = ";", drop = F, direction = "long")
 orig_long_by_prot = orig_long_by_prot[!grepl("##", Protein, fixed = TRUE)]
 orig_long_by_prot[, ProteinName := NULL]
@@ -29,10 +28,10 @@ quant_with_cls[, AllUnique := all(IsUnique), by = "Cluster"]
 quant_with_cls[, log2Intensity := logintensity]
 quant_with_cls[, log2IntensityNormalized := logintensity]
 
-# Separated for easier comparison of filtering steps
 # quant_no_single_shared = processIsoforms(quant_with_cls, remove_single_shared = TRUE, merge_identical = FALSE, remove_subsets = FALSE)
 quant_merged_identical = processIsoforms(quant_with_cls, remove_single_shared = F, merge_identical = T, remove_subsets = FALSE)
 # quant_no_subsets = processIsoforms(quant_merged_identical, remove_single_shared = F, merge_identical = F, remove_subsets = T)
+## commented: optional processing steps
 
 quant_merged_identical[, Intensity := 2^log2Intensity]
 quant_all_procd = MSstatsConvert::MSstatsPreprocess(quant_merged_identical[, .(ProteinName, PeptideSequence, PrecursorCharge = Charge, PSM, Run, Channel, Intensity)], 
@@ -61,6 +60,7 @@ ch_order = c("126C", "127N", "127C", "128N", "128C",
              "129N", "129C", "130N", "130C", "131N")
 plot_input_brd[, Channel := factor(Channel, levels = ch_order, ordered = TRUE)]
 
+# Peptide-protein graph plots for a single cluster ----
 colors = palette.colors(8, "R4")[-1]
 white = "#ffffff"
 all_colors = c(colors, white)
@@ -108,6 +108,7 @@ plot(pp_g_unique,
      margin = -0.05, vertex.label.cex = 2)
 dev.off()
 
+# Profile plot for a single cluster ----
 color_vals = all_colors[colors_full[names(V(pp_g_full))]]
 psms_list = names(V(pp_g_full))
 names(color_vals) = psms_list
@@ -123,7 +124,6 @@ brd_cluster[, Time := stringr::str_extract(Condition, "_[0-9]+min")]
 brd_cluster[, Time := stringr::str_replace(Time, "_", "")]
 brd_cluster[, Time := stringr::str_replace(Time, "min", "")]
 brd_cluster[, Time := stringr::str_replace(Time, "min", "")]
-
 brd_cluster[, Channel := factor(Channel, levels = ch_order, ordered = T)]
 
 ggplot(brd_cluster[!(IsUnique)][ProteinName != "BRDT"],

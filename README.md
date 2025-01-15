@@ -12,6 +12,6 @@ After obtaining the folder with all input files, it is possible to run the follo
 - 03_ptm_case_study.R to reproduce the summarization of an example cluster of PTM sites;
 - 04_simulated_data.R to reproduce the model-based simulation study which evaluates the impact of proposed approach on log-fold change estimation and statistical inference results; 
 - 05_tpp_onepot_data_preparation.R to reproduce the re-processing of protein clusters from onePot and TPP data;
-- 06_tpp_onepot_analysis.R to reproduce the re-analysis of onePot and TPP data;
+- 06_tpp_onepot_analysis.R to reproduce the re-analysis of non-trivial protein clusters found in onePot and TPP data;
 - 07_analytical_cov_matrix_simulated_data.R to reproduce a model-based simulation which evaluates the variance of weights estimation in a simple scenario;
 - 08_brd_simulations_si.R to reproduce additional protein degrader-study based simulation describing the influence of loss functions, starting points and lack of unique peptides on the quality of log-fold change estimation.

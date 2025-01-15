@@ -157,7 +157,7 @@ uniqueN(tpp_cls_int)
 unique(onepot_procd_iso[Cluster %in% onepot_cls_int][, .(Cluster, EachHasUnique, NumProteins)])
 onepot_procd_iso[Cluster %in% onepot_cls_int][(HasUnique), .(NumProteins = uniqueN(ProteinName)), by = "Cluster"][NumProteins > 1]
 curve_procd_iso[Cluster %in% tpp_cls_int][(HasUnique), .(NumProteins = uniqueN(ProteinName)), by = "Cluster"][NumProteins > 1]
-# Counts for the paper 
+# Counts of features and proteins
 uniqueN(orig_onepot$ProteinName)
 uniqueN(onepot_procd_iso$ProteinName)
 
