@@ -1,8 +1,8 @@
+# Code required to reproduce Figure 2 (profile plot and peptide-protein graph for the protein degrader case study)
 # Libraries ----
 library(data.table)
 library(MSstatsWeightedSummary)
 library(ggplot2)
-library(lme4)
 library(gridExtra)
 library(igraph)
 library(parallel)
@@ -66,6 +66,9 @@ white = "#ffffff"
 all_colors = c(colors, white)
 
 pp_g_full = MSstatsWeightedSummary::createPeptideProteinGraph(unique(brd_cluster[, .(PeptideSequence, ProteinName)]))
+# plot(pp_g_full)
+brd_cluster[, IsUnique := uniqueN(ProteinName) == 1, by = "PSM"]
+brd_cluster[!(IsUnique), unique(PSM)]
 ppdt_full = as.data.table(unique(brd_cluster[, .(PeptideSequence, ProteinName, IsUnique)]))
 prots = unique(ppdt_full$ProteinName)
 shared_colors = unique(ppdt_full[!(IsUnique), .(PeptideSequence)])[, .(PeptideSequence, Id = 1:.N)]
@@ -77,15 +80,16 @@ names(colors_full) = ppdt_full$PeptideSequence
 colors_full = c(colors_full, rep(max(colors_full) + 1, 4))
 names(colors_full)[(length(colors_full) - 3):length(colors_full)] = prots
 
+png("./plots/png/brd_graph_shared.png")
 par(mar=c(0,0,0,0)+.01)
 plot(pp_g_full,
      vertex.color = all_colors[colors_full[names(V(pp_g_full))]],
      vertex.label = ifelse(grepl("BRD", names(V(pp_g_full))), names(V(pp_g_full)), ""),
      margin = -0.05, vertex.label.cex = 2)
-
+dev.off()
 
 pp_g_unique = MSstatsWeightedSummary::createPeptideProteinGraph(unique(brd_cluster[(IsUnique), .(PeptideSequence, ProteinName)]))
-ppdt_unique = as.data.table(unique(brd_cluster[, .(PeptideSequence, ProteinName, IsUnique)]))
+ppdt_unique = as.data.table(unique(brd_cluster[(IsUnique), .(PeptideSequence, ProteinName, IsUnique)]))
 prots = unique(ppdt_unique$ProteinName)
 shared_colors = unique(ppdt_unique[!(IsUnique), .(PeptideSequence)])[, .(PeptideSequence, Id = 1:.N)]
 ppdt_unique = merge(ppdt_unique, shared_colors, by = "PeptideSequence", all.x = T)
@@ -96,155 +100,50 @@ names(colors_unique) = ppdt_unique$PeptideSequence
 colors_unique = c(colors_unique, rep(max(colors_unique) + 1, 3))
 names(colors_unique)[(length(colors_unique) - 2):length(colors_unique)] = prots
 
+png("./plots/png/brd_graph_noshared.png")
 par(mar=c(0,0,0,0)+.01)
 plot(pp_g_unique,
      vertex.color = all_colors[colors_unique[names(V(pp_g_unique))]],
      vertex.label = ifelse(grepl("BRD", names(V(pp_g_unique))), names(V(pp_g_unique)), ""),
      margin = -0.05, vertex.label.cex = 2)
-
-
+dev.off()
 
 color_vals = all_colors[colors_full[names(V(pp_g_full))]]
 psms_list = names(V(pp_g_full))
 names(color_vals) = psms_list
 
 colors_full = colors_full[!grepl("BRD", colors_full)]
-plot_input_2_3[, NameColor := ifelse(IsUnique, "unique", PeptideSequence)]
+brd_cluster[, NameColor := ifelse(IsUnique, "unique", PeptideSequence)]
 
 color_check = unique(unique(ppdt_full[, .(PeptideSequence, IsUnique, ColorGroup)])[, .(NameColor = ifelse(IsUnique, "unique", PeptideSequence),
                                                                                        ColorGroup)])
-plot_input_2_3[, NameColor := factor(NameColor, levels = color_check$NameColor)]
-plot_input_2_3[, Group := ifelse(grepl("DMSO", Condition), "Control", "Treatment")]
-plot_input_2_3[, Time := stringr::str_extract(Condition, "_[0-9]+min")]
-plot_input_2_3[, Time := stringr::str_replace(Time, "_", "")]
-plot_input_2_3[, Time := stringr::str_replace(Time, "min", "")]
-plot_input_2_3[, Time := stringr::str_replace(Time, "min", "")]
+brd_cluster[, NameColor := factor(NameColor, levels = color_check$NameColor)]
+brd_cluster[, Group := ifelse(grepl("DMSO", Condition), "Control", "Treatment")]
+brd_cluster[, Time := stringr::str_extract(Condition, "_[0-9]+min")]
+brd_cluster[, Time := stringr::str_replace(Time, "_", "")]
+brd_cluster[, Time := stringr::str_replace(Time, "min", "")]
+brd_cluster[, Time := stringr::str_replace(Time, "min", "")]
 
-ggplot(plot_input_2_3[!(IsUnique)][Group == "Treatment"],
-       aes(x = reorder(Time, as.numeric(Time)), y = logintensity, group = PSM, color = NameColor)) +
-  geom_line(data = plot_input_2_3[(IsUnique)][Group == "Treatment"], alpha = 0.5, size = 1) +  
-  geom_line(size = 1.5) +
-  # geom_vline(xintercept = 5.5, color = "red", linetype = 2) +
-  scale_color_manual(name = "PSM",
-                     values = all_colors[color_check$ColorGroup]) +
-  facet_grid(~ProteinName) +
-  theme_bw() +
-  theme(axis.title = element_text(size = 24),
-        legend.text = element_text(size = 20),
-        axis.text = element_text(size = 22),
-        # axis.text.x = element_text(angle = 270),
-        strip.text = element_text(size = 24), 
-        legend.title = element_text(size = 20),
-        legend.position = "none",
-        legend.box = "vertical") +
-  xlab("time") +
-  ylab("log-intensity")
+brd_cluster[, Channel := factor(Channel, levels = ch_order, ordered = T)]
 
-ggplot(plot_input_2_3[!(IsUnique)],
-       aes(x = reorder(Time, as.numeric(Time)), y = logintensity, group = PSM, color = NameColor)) +
-  geom_line(data = plot_input_2_3[(IsUnique)], alpha = 0.5, size = 1) +  
+ggplot(brd_cluster[!(IsUnique)][ProteinName != "BRDT"],
+       aes(x = reorder(Time, as.numeric(Time)), y = log2IntensityNormalized, group = PSM, color = NameColor)) +
+  geom_line(data = brd_cluster[(IsUnique)][ProteinName != "BRDT"], size = 1) +  
   geom_line(size = 1.5) +
   # geom_vline(xintercept = 5.5, color = "red", linetype = 2) +
   scale_color_manual(name = "PSM",
                      values = all_colors[color_check$ColorGroup]) +
   facet_grid(Group~ProteinName) +
   theme_bw() +
-  theme(axis.title = element_text(size = 24),
-        legend.text = element_text(size = 20),
-        axis.text = element_text(size = 22),
+  theme(axis.title = element_text(size = 18),
+        legend.text = element_text(size = 18),
+        axis.text = element_text(size = 14),
         # axis.text.x = element_text(angle = 270),
-        strip.text = element_text(size = 24), 
-        legend.title = element_text(size = 20),
+        strip.text = element_text(size = 18), 
+        legend.title = element_text(size = 18),
         legend.position = "none",
         legend.box = "vertical") +
   xlab("time") +
   ylab("log-intensity")
-
-
-
-
-
-
-
-full_unique_input = copy(brd_cluster)
-summary_input_1 = plot_input_brd[ProteinName != "BRD3"][!(IsUnique) | PSM %in% c("K.AQAEHAEK.E_3",
-                                                                                 "K.LNLPDYYK.I_2",
-                                                                                 "R.KLQDVFEFR.Y_3",
-                                                                                 "R.LAELQEQLR.A_2")]
-summary_input_1[, Channel := as.factor(as.character(Channel))]
-
-full_summary = getWeightedProteinSummary(full_unique_input,
-                                         norm = "Huber",
-                                         norm_parameter = 1e-3)
-summary_1_unique = getWeightedProteinSummary(summary_input_1[(IsUnique)],
-                                             norm = "Huber",
-                                             norm_parameter = 1e-3)
-summary_1_shared = getWeightedProteinSummary(summary_input_1,
-                                             norm = "Huber",
-                                             norm_parameter = 1e-3)
-
-weights_1 = merge(unique(summary_input_1[, .(ProteinName, PSM, IsUnique)]),
-                  featureWeights(summary_1_shared),
-                  by = c("ProteinName", "PSM", "IsUnique"),
-                  all.x = TRUE)
-weights_1[, Weight := ifelse(is.na(Weight), 0, Weight)]
-weights_1[, ProteinName := stringr::str_extract(ProteinName, "BRD[2-4]")]
-weights_1[!(IsUnique)][order(PSM)]
-
-summaries_df = proteinData(summary_1_unique)
-summaries_df$Channel = factor(summaries_df$Channel, levels = ch_order, 
-                              ordered = TRUE)
-summaries_df[, Abundance := Abundance - mean(Abundance), by = "Protein"]
-summaries_df[, ProteinName := Protein]
-feature_data = copy(summary_input_1[!(IsUnique)])
-feature_data[, log2IntensityNormalized := log2IntensityNormalized - mean(log2IntensityNormalized),
-             by = c("ProteinName", "PSM")]
-feature_data$Channel = factor(feature_data$Channel, levels = ch_order, 
-                              ordered = TRUE)
-
-feature_data2 = copy(summary_input_1)
-feature_data2[, log2IntensityNormalized := log2IntensityNormalized - mean(log2IntensityNormalized),
-              by = c("ProteinName", "PSM")]
-feature_data2$Channel = factor(feature_data2$Channel, levels = ch_order, 
-                               ordered = TRUE)
-feature_data2[, ProteinName := ifelse(IsUnique, ProteinName, "shared")]
-feature_data2[, feature := ifelse(IsUnique, "unique", "shared")]
-feature_data2[, type := factor(ifelse(IsUnique, "unique", "shared"),
-                               levels = c("unique", "shared")[c(2, 1)], ordered = TRUE)]
-feature_data2[, FeatureID := as.numeric(as.factor(PSM))]
-
-featureWeights(summary_1_shared)[PSM %in% c("K.RQLSLDINKLPGEK.L_3", "R.LMFSNCYK.Y_2")]
-featureWeights(summary_1_shared)[PSM %in% c("K.RQLSLDINKLPGEK.L_3", "R.LMFSNCYK.Y_2")]
-
-feat_annot = unique(feature_data2[Channel == "131N", .(PSM, log2IntensityNormalized, FeatureID, Channel)][PSM %in% c("K.RQLSLDINKLPGEK.L_3", "R.LMFSNCYK.Y_2")])
-feat_annot$Label2 = c("Peptide 1", "Peptide 2")
-feat_annot2 = merge(feat_annot, featureWeights(summary_1_shared)[PSM %in% c("K.RQLSLDINKLPGEK.L_3", "R.LMFSNCYK.Y_2")],
-                    by = c("PSM"))[ProteinName == "BRD4"]
-
-ggplot(summaries_df[!grepl("DMSO", Condition)], 
-       aes(x = Channel, y = Abundance, 
-           group = paste(ProteinName), color = ProteinName)) +
-  geom_line(size = 1.5) + # alpha = 0.8
-  geom_line(aes(x = Channel, y = log2IntensityNormalized,
-                group = PSM),
-            data = feature_data2[!grepl("DMSO", Condition)][feature != "unique"][PSM %in% c("K.RQLSLDINKLPGEK.L_3", "R.LMFSNCYK.Y_2")],
-            inherit.aes = FALSE, color = "#2297E6",
-            size = 2, linetype = 2) +
-  geom_text(aes(x = Channel, y = ifelse(Label2 == "Peptide 2", log2IntensityNormalized + 0.1, log2IntensityNormalized), label = Label2),
-            data = feat_annot, size = 8,
-            inherit.aes = FALSE) +
-  geom_text(aes(x = Channel, y = ifelse(Label2 == "Peptide 2", log2IntensityNormalized + 0.01, log2IntensityNormalized - 0.09), label = paste("BRD4 Weight:", round(Weight, 2))),
-            data = feat_annot2, size = 6,
-            inherit.aes = FALSE) +
-  scale_color_manual(name = "protein", values = c("#E69F00", "#56B4E9")) +
-  theme_bw() +
-  theme(axis.title = element_text(size = 18),
-        legend.text = element_text(size = 16),
-        legend.key.spacing = unit(10, "pt"),
-        axis.text = element_text(size = 18),
-        axis.text.x = element_text(angle = 270),
-        strip.text = element_text(size = 18), 
-        legend.title = element_text(size = 18),
-        legend.position = "bottom",
-        legend.box = "vertical")
-
+ggsave(filename = "plots/pdf/brd_shared_profiles_both_groups.pdf", width = 10, height = 5, scale = 1, dpi = 300)
+ggsave(filename = "plots/png/brd_shared_profiles_both_groups.png", width = 10, height = 5, scale = 1, dpi = 300)
