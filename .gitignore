@@ -3,3 +3,4 @@
 .RData
 .Ruserdata
 input_data/*
+plots/pdf/*
