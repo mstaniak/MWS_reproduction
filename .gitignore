@@ -2,4 +2,4 @@
 .Rhistory
 .RData
 .Ruserdata
-./input_data/*
+input_data/*
